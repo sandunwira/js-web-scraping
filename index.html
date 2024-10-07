@@ -17,28 +17,32 @@
 
 <body>
 	<h1>Web Scraping with JavaScript</h1>
-	<p>Enter your message below to get information about a topic.</p>
+	<p>Enter your message below to get information.</p>
+	<p>Credits: 
+		<a href="https://allorigins.win" target="_blank">All Origins</a>,
+		<a href="https://html.duckduckgo.com/html" target="_blank">DuckDuckGo</a>
+	</p>
 
 	<form id="searchForm">
-		<input type="text" id="searchQuery" name="message" autocomplete="off">
+		<input type="text" id="searchQuery" name="message" autocomplete="off" required>
 		<input type="submit" value="Search">
 	</form>
 
-	<br><br>
+	<br>
 
-	<div id="content">Result will appear here</div>
+	<div id="scrapedContent">Result will appear here</div>
 
 	<script>
 		const searchForm = document.getElementById('searchForm');
 		const searchQuery = document.getElementById('searchQuery');
-		const content = document.getElementById('content');
+		const scrapedContent = document.getElementById('scrapedContent');
 
 		searchForm.addEventListener('submit', function (event) {
 			event.preventDefault();
 			const query = searchQuery.value.trim();
 
-			content.textContent = "Searching the web...";
-			searchWeb(query).then(snippetText => content.textContent = snippetText).catch(error => content.textContent = "Sorry, I couldn't find any relevant information. Please try again in a bit or try a different search query.");
+			scrapedContent.textContent = "Searching the web...";
+			searchWeb(query).then(snippetText => scrapedContent.textContent = snippetText).catch(error => scrapedContent.textContent = "Sorry, I couldn't find any relevant information. Please try again in a bit or try a different search query.");
 		});
 
 		async function searchWeb(query) {
