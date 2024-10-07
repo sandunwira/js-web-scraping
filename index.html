@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Web Scraping with JavaScript</title>
+
+	<style>
+		input[type="text"] {
+			width: 50%;
+			resize: none;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Web Scraping with JavaScript</h1>
+	<p>Enter your message below to get information about a topic.</p>
+
+	<form id="searchForm">
+		<input type="text" id="searchQuery" name="message" autocomplete="off">
+		<input type="submit" value="Search">
+	</form>
+
+	<br><br>
+
+	<div id="content">Result will appear here</div>
+
+	<script>
+		const searchForm = document.getElementById('searchForm');
+		const searchQuery = document.getElementById('searchQuery');
+		const content = document.getElementById('content');
+
+		searchForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			const query = searchQuery.value.trim();
+
+			content.textContent = "Searching the web...";
+			searchWeb(query).then(snippetText => content.textContent = snippetText).catch(error => content.textContent = "Sorry, I couldn't find any relevant information. Please try again in a bit or try a different search query.");
+		});
+
+		async function searchWeb(query) {
+			const proxyUrl = 'https://api.allorigins.win/get?url=';
+			const targetUrl = encodeURIComponent(`https://html.duckduckgo.com/html/?q=${query}`);
+			const url = proxyUrl + targetUrl;
+
+			try {
+				const response = await fetch(url);
+				let data = await response.json();
+				console.log('Fetched data:', data);
+
+				let htmlString = data.contents.replace(/\s+/g, ' ').trim();
+				console.log('HTML string:', htmlString);
+
+				const parser = new DOMParser();
+				const doc = parser.parseFromString(htmlString, 'text/html');
+				console.log('Parsed document:', doc);
+
+				// Priority 1: Find the element with the ID 'zero_click_abstract'
+				let snippetElement = doc.getElementById('zero_click_abstract');
+				let snippetText = 'Sorry, I couldn\'t find any relevant information. Please try again in a bit or try a different search query.';
+
+				if (snippetElement) {
+					snippetText = snippetElement.innerText;
+					console.log('Snippet text: ' + snippetText);
+					snippetText = snippetText.replace('More at Wikipedia', '');
+				} else {
+					// Priority 2: Find the first element with the class 'result__snippet'
+					const snippetElements = doc.querySelectorAll('.result__snippet');
+					if (snippetElements.length > 0) {
+						// Check if the first element's text starts with "Learn about"
+						if (snippetElements[0].innerText.startsWith('Learn about')) {
+							// If so, use the second element's text if it exists
+							if (snippetElements.length > 1) {
+								snippetText = snippetElements[1].innerText;
+							}
+						} else {
+							// Otherwise, use the first element's text
+							snippetText = snippetElements[0].innerText;
+						}
+					}
+				}
+
+				// Remove the last sentence that contains "More at..."
+				snippetText = snippetText.replace(/\.?\s*More at.*$/, '');
+
+				// Split the text into sentences
+				let sentences = snippetText.split('. ');
+
+				// Remove the last sentence that ends with "..."
+				for (let i = sentences.length - 1; i >= 0; i--) {
+					if (sentences[i].endsWith('...')) {
+						sentences.splice(i, 1);
+						break;
+					}
+				}
+
+				// Remove citation elements such as "[1]" or "[a]", "[ 1 ]" or "[ a ]" from the sentences
+				sentences = sentences.map(sentence => sentence.replace(/\[[a-zA-Z0-9]+\]/g, '').replace(/\[[ a-zA-Z0-9 ]+\]/g, ''));
+
+				// Join the sentences back together
+				snippetText = sentences.join('. ');
+
+				if (snippetText.length === 0) {
+					snippetText = 'Sorry, I couldn\'t find any relevant information. Please try again in a bit or try a different search query.';
+				}
+
+				console.log('Sanitized snippet text: ' + snippetText);
+
+				return snippetText;
+			}
+			catch (error) {
+				console.error('Error fetching or parsing HTML:', error);
+				throw error;
+			}
+		}
+	</script>
+</body>
+
+</html>
